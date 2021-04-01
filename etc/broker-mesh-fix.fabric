@@ -1,0 +1,9 @@
+shell:echo Adding configuration properties on broker profiles
+
+fabric:profile-edit --append --pid io.fabric8.mq.fabric.server-alpha_broker/network=loadbal mq-broker-loadbal.alpha_broker
+fabric:profile-edit --append --pid io.fabric8.mq.fabric.server-alpha_broker/network.userName=admin mq-broker-loadbal.alpha_broker
+fabric:profile-edit --append --pid io.fabric8.mq.fabric.server-alpha_broker/network.password=admin mq-broker-loadbal.alpha_broker
+
+fabric:profile-edit --append --pid io.fabric8.mq.fabric.server-bravo_broker/network=loadbal mq-broker-loadbal.bravo_broker
+fabric:profile-edit --append --pid io.fabric8.mq.fabric.server-bravo_broker/network.userName=admin mq-broker-loadbal.bravo_broker
+fabric:profile-edit --append --pid io.fabric8.mq.fabric.server-bravo_broker/network.password=admin mq-broker-loadbal.bravo_broker
