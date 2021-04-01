@@ -1,0 +1,22 @@
+shell:echo Creating the Fabric 
+fabric:create --new-user admin --new-user-password admin --zookeeper-password admin --wait-for-provisioning
+
+shell:echo Creating the Broker Cluster
+fabric:mq-create --kind StandAlone --create-container alpha_broker --group loadbal alpha_broker 
+fabric:mq-create --kind StandAlone --create-container bravo_broker --group loadbal bravo_broker
+
+shell:echo Creating a profile to deploy 'broker-topology'
+
+fabric:profile-create --parent default --parent feature-camel --parent feature-cxf --parent feature-fabric-web broker-topology
+shell:sleep 2000
+
+fabric:profile-edit --feature camel-swagger --feature camel-swagger-java --feature cxf-rs-description-swagger2 --feature fabric-hawtio-swagger --feature swagger --feature swagger-java --feature camel-cxf --feature camel-jackson --feature cxf --feature camel-jetty --feature cxf-http-jetty --feature activemq-camel --feature activemq-blueprint --feature camel-amq broker-topology
+
+shell:echo Deploy bundle to the profile
+fabric:profile-edit --bundle mvn:com.imtj/broker-topology/1.0.0-SNAPSHOT broker-topology
+
+shell:echo Creating a container for the 'broker-topology' profile
+fabric:container-create-child --jmx-user admin --jmx-password admin --profile broker-topology root web-container
+shell:sleep 2000
+
+shell:echo Done! If you see this, everything went OK :)

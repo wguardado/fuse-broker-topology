@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+    xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
+    xmlns:cxf="http://camel.apache.org/schema/blueprint/cxf"
+    xmlns:ext="http://aries.apache.org/blueprint/xmlns/blueprint-ext/v1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="         http://www.osgi.org/xmlns/blueprint/v1.0.0          https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    
+    <cxf:rsServer address="/support" id="cxfRsServer"
+        loggingFeatureEnabled="true" serviceClass="com.imtj.fuse.broker.topology.MainService">
+        <cxf:providers>
+            <bean
+                class="org.apache.cxf.jaxrs.provider.json.JSONProvider" id="jsonProvider">
+                <property name="dropRootElement" value="true"/>
+                <property name="dropCollectionWrapperElement" value="true"/>
+                <property name="serializeAsArray" value="true"/>
+                <property name="supportUnwrapped" value="true"/>
+            </bean>
+        </cxf:providers>
+        <cxf:outInterceptors>
+            <bean class="com.imtj.fuse.broker.topology.EnableCORSInterceptor"/>
+        </cxf:outInterceptors>	
+        <cxf:features>
+            <bean class="io.fabric8.cxf.endpoint.SwaggerFeature">
+                <property name="title" value="Broker Topology Example"/>
+                <property name="description" value="Service Route"/>
+                <property name="version" value="1.0.0"/>
+                <property name="runAsFilter" value="true"/>
+            </bean>
+        </cxf:features>
+    </cxf:rsServer>
+    
+    <bean class="org.apache.activemq.ActiveMQConnectionFactory" id="activemq-connection-factory">
+        <property name="brokerURL" value="discovery:(fabric:loadbal)"/>
+        <property name="userName" value="admin"/>
+        <property name="password" value="admin"/>
+        <property name="trustAllPackages" value="true"/>
+    </bean>
+    
+    <bean class="org.apache.activemq.camel.component.ActiveMQComponent" id="activemq">
+        <property name="configuration">
+            <bean class="org.apache.activemq.camel.component.ActiveMQConfiguration">
+                <property name="connectionFactory" ref="activemq-connection-factory"/>
+            </bean>
+        </property>
+    </bean>
+   
+    
+    <camelContext id="service-context"
+        xmlns="http://camel.apache.org/schema/blueprint" xmlns:order="http://com.imtj/wg/just">
+        <package>com.imtj.fuse.broker.topology</package>
+    </camelContext>
+</blueprint>
