@@ -4,10 +4,7 @@ This project is a little Camel Route with a CXFRS Endpoint that receives
 a GET invocation.  It creates a Java Object, stores it in the Exchange properties
 and then invokes an ActiveMQ Queue.  
 
-When working on a Standalone ActiveMQ everythings works fine, but when the
-route is used against a Mesh of Two or More ActiveMQ brokers using the
-`discovery:fabric` mechanism sometimes the CXF route does not get the
-response.
+
 
 ## Environment Setup
 This a reduced version of a Development environment, it uses a Fabric Setup
@@ -34,14 +31,11 @@ onException(Exception.class)
 	.routeId("service.exception.handler")
 	.handled(true)
 	.log("There is an Error on the Routes: ${exception.message}")
-	.process(new Processor() {
-		@Override
-		public void process(Exchange exchange) throws Exception {
+	.process(exchange -> {
 			Exception ex = exchange.getProperty(Exchange.EXCEPTION_CAUGHT, Exception.class);
 			ServiceResponse resp = exchange.getProperty("serviceResponse", ServiceResponse.class);
 			resp.setAmqMessage("NO MESSAGE FROM AMQ!!! WE GOT AN ERROR " + (ex!=null ? ex.getMessage() : "") );
 			exchange.getIn().setBody(resp);
-		}
 	});
 
 
@@ -54,27 +48,22 @@ from("activemq:service.request")
 	
 from("cxfrs:bean:cxfRsServer")
 	.routeId("service.cxf")
-	.process(new Processor() {
-		@Override
-		public void process(Exchange exchange) throws Exception {
-			ServiceResponse resp = new ServiceResponse();
-			resp.setCxfMessage("HELLO FROM CXF!");
-			exchange.setProperty("serviceResponse", resp);
-		}
+	.process(exchange -> {
+		ServiceResponse resp = new ServiceResponse();
+		resp.setCxfMessage("HELLO FROM CXF!");
+		exchange.setProperty("serviceResponse", resp);
 	})
 	.inOut("activemq:service.request?replyTo=service.response&replyToType=Shared")
 	.log("Response from ActiveMQ: ${body}")
-	.process(new Processor() {
-		
-		@Override
-		public void process(Exchange exchange) throws Exception {
+	.process(exchange -> {
 			String body = exchange.getIn().getBody(String.class);
 			ServiceResponse resp = exchange.getProperty("serviceResponse", ServiceResponse.class);
 			resp.setAmqMessage(body);
 			exchange.getIn().setBody(resp);
-		}
+		
 	})
 	;
+		
 ```
 
 
@@ -126,6 +115,21 @@ And then sometimes the response does not come with the correct amqMessage:
 ```
 {"amqMessage":"NO MESSAGE FROM AMQ!!! WE GOT AN ERROR The OUT message was not received within: 20000 millis due reply message with correlationID: Camel-ID-jet-45695-1527187921918-1-11 not received on destination: queue://service.response. Exchange[ID-jet-45695-1527187921918-1-10]","cxfMessage":"HELLO FROM CXF!"}
 ```
+
+
+## Update
+
+The problem comes from the brokers not being in sync with the default configuration.  To fix this, we must add the following properties to each of the 
+broker profiles in the configuration:
+```
+io.fabric8.mq.fabric.server-"$brokerNode"_broker/network=loadbal
+io.fabric8.mq.fabric.server-"$brokerNode"_broker/network.userName="$jmxUser"
+io.fabric8.mq.fabric.server-"$brokerNode"_broker/network.password="$jmxPass"
+```
+
+Where `$brokerNode` is the name of each of the broker nodes that are part of the mesh configuration.
+`$jmxUser` and `$jmxPass` are the configured user and password properties of a valid realm configured for the fabric
+
 
 
 ## Credits
